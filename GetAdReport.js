@@ -66,7 +66,23 @@ function transformAds (list, type) {
     for (let row = 0; row < quantity; row++){
       
       let rowCounter = type + " " + (parseInt(row) + 1);
-     
+
+      /* Десь тут помилка при читанні Адаптивних Дісплей
+
+         RESPONSIVE_DISPLAY_AD
+        [ { text: 'Знижки до -40%' }, { text: 'Безкоштовна доставка' } ]
+         undefined
+        { text: 'Знижки до -40%' }
+        Знижки до -40%
+        { text: 'Безкоштовна доставка' }
+        Безкоштовна доставка
+        TypeError: Cannot read properties of undefined (reading '0')
+        (Code:70:17)
+            at transformReport (Code:166:30)
+            at main (Code:259:18)
+      
+      */
+
       if (!!list[row]) {
         if (!!list[row]["text"]) {
             obj[rowCounter] = list[row]["text"]
@@ -111,8 +127,6 @@ function transformReport(report){
                 "Long Headline": ""
             };
         } else if (row["ad_group_ad.ad.type"] === "EXPANDED_TEXT_AD"){
-            console.log("This is EXPANDED_TEXT_AD:");
-            console.log(row["ad_group_ad.ad.expanded_text_ad.headline_part1"]);
             headlineRow = transformAds([
                 row["ad_group_ad.ad.expanded_text_ad.headline_part1"], 
                 row["ad_group_ad.ad.expanded_text_ad.headline_part2"], 
@@ -130,8 +144,6 @@ function transformReport(report){
                 "Long Headline": ""
             };
         } else if (row["ad_group_ad.ad.type"] === "TEXT_AD") {
-            console.log("This is TEXT_AD:");
-            console.log(row["ad_group_ad.ad.text_ad.headline"]);
             headlineRow = transformAds([
                 row["ad_group_ad.ad.text_ad.headline"]
             ], "Headline");
@@ -146,9 +158,59 @@ function transformReport(report){
             longHeadline = {
                 "Long Headline": ""
             };
+        } else if (row["ad_group_ad.ad.type"] === "EXPANDED_DYNAMIC_SEARCH_AD") {
+            headlineRow = transformAds([
+                ""
+            ], "Headline");
+            descriptionRow = transformAds([
+                row["ad_group_ad.ad.expanded_dynamic_search_ad.description"],
+                row["ad_group_ad.ad.expanded_dynamic_search_ad.description2"]
+            ], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": ""
+            };
+        } else if (row["ad_group_ad.ad.type"] === "RESPONSIVE_DISPLAY_AD") {
+            headlineRow = transformAds(row["ad_group_ad.ad.responsive_display_ad.headlines"], "Headline");
+            descriptionRow = transformAds(row["ad_group_ad.ad.responsive_display_ad.long_headline"], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": row["ad_group_ad.ad.responsive_display_ad.long_headline"]
+            };
+
+        } else if (row["ad_group_ad.ad.type"] === "VIDEO_RESPONSIVE_AD") {
+            headlineRow = transformAds(row["ad_group_ad.ad.video_responsive_ad.headlines"], "Headline");
+            descriptionRow = transformAds(row["ad_group_ad.ad.video_responsive_ad.descriptions"], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": row["ad_group_ad.ad.video_responsive_ad.long_headlines"]
+            };
+
         } else {
             console.log("I don't know what it is");
-  }
+            headlineRow = transformAds([
+                ""
+            ], "Headline");
+            descriptionRow = transformAds([
+                ""
+            ], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": "I don't know what it is"
+            };
+        }
 
       result.push(
         {
@@ -225,12 +287,12 @@ DISCOVERY_MULTI_ASSET_AD
             ad_group_ad.ad.discovery_multi_asset_ad.headlines, 
             ad_group_ad.ad.discovery_multi_asset_ad.descriptions, 
 
-EXPANDED_DYNAMIC_SEARCH_AD
+EXPANDED_DYNAMIC_SEARCH_AD ->
 
             ad_group_ad.ad.expanded_dynamic_search_ad.description, 
             ad_group_ad.ad.expanded_dynamic_search_ad.description2, 
 
-EXPANDED_TEXT_AD ->
+EXPANDED_TEXT_AD
 
 +            ad_group_ad.ad.expanded_text_ad.headline_part1, 
 +            ad_group_ad.ad.expanded_text_ad.headline_part2, 
@@ -253,7 +315,7 @@ LOCAL_AD
             ad_group_ad.ad.local_ad.path1, 
             ad_group_ad.ad.local_ad.path2, 
 
-RESPONSIVE_DISPLAY_AD
+RESPONSIVE_DISPLAY_AD ->
 
             ad_group_ad.ad.responsive_display_ad.headlines, 
             ad_group_ad.ad.responsive_display_ad.long_headline, 
@@ -266,13 +328,13 @@ RESPONSIVE_SEARCH_AD
 +           ad_group_ad.ad.responsive_search_ad.path1, 
 +           ad_group_ad.ad.responsive_search_ad.path2, 
 
-VIDEO_RESPONSIVE_AD
+VIDEO_RESPONSIVE_AD ->
 
             ad_group_ad.ad.video_responsive_ad.headlines, 
             ad_group_ad.ad.video_responsive_ad.descriptions, 
             ad_group_ad.ad.video_responsive_ad.long_headlines,
 
-TEXT_AD ->
+TEXT_AD
 
 +            ad_group_ad.ad.text_ad.headline,
 +           ad_group_ad.ad.text_ad.description2,
