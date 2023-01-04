@@ -52,7 +52,7 @@ const CONFIG = {
 function transformAds (list, type) {
     
     let obj = {};
-    console.log(type);
+//    console.log(type);
     let quantity;
 
     if (type === "Headline") {
@@ -66,22 +66,6 @@ function transformAds (list, type) {
     for (let row = 0; row < quantity; row++){
       
       let rowCounter = type + " " + (parseInt(row) + 1);
-
-      /* Десь тут помилка при читанні Адаптивних Дісплей
-
-         RESPONSIVE_DISPLAY_AD
-        [ { text: 'Знижки до -40%' }, { text: 'Безкоштовна доставка' } ]
-         undefined
-        { text: 'Знижки до -40%' }
-        Знижки до -40%
-        { text: 'Безкоштовна доставка' }
-        Безкоштовна доставка
-        TypeError: Cannot read properties of undefined (reading '0')
-        (Code:70:17)
-            at transformReport (Code:166:30)
-            at main (Code:259:18)
-      
-      */
 
       if (!!list[row]) {
         if (!!list[row]["text"]) {
@@ -115,7 +99,7 @@ function transformReport(report){
         let pathRow = {};
         let longHeadline = {};
 
-        console.log(row["ad_group_ad.ad.type"]);
+//        console.log(row["ad_group_ad.ad.type"]);
         if (row["ad_group_ad.ad.type"] === "RESPONSIVE_SEARCH_AD") {
             headlineRow = transformAds(row["ad_group_ad.ad.responsive_search_ad.headlines"], "Headline");
             descriptionRow = transformAds(row["ad_group_ad.ad.responsive_search_ad.descriptions"], "Description");    
@@ -175,7 +159,7 @@ function transformReport(report){
             };
         } else if (row["ad_group_ad.ad.type"] === "RESPONSIVE_DISPLAY_AD") {
             headlineRow = transformAds(row["ad_group_ad.ad.responsive_display_ad.headlines"], "Headline");
-            descriptionRow = transformAds(row["ad_group_ad.ad.responsive_display_ad.long_headline"], "Description");    
+            descriptionRow = transformAds(row["ad_group_ad.ad.responsive_display_ad.descriptions"], "Description");    
             pathRow = {
                 "Path 1": "",
                 "Path 2": ""
@@ -208,7 +192,7 @@ function transformReport(report){
                 "Path 2": ""
             };
             longHeadline = {
-                "Long Headline": "I don't know what it is"
+                "Long Headline": `I don't how to work with ${row["ad_group_ad.ad.type"]}`
             };
         }
 
@@ -282,15 +266,15 @@ function transformReport(report){
 +           ad_group_ad.ad.id, 
 +           ad_group_ad.ad.type, 
 
-DISCOVERY_MULTI_ASSET_AD
+DISCOVERY_MULTI_ASSET_AD ->
 
             ad_group_ad.ad.discovery_multi_asset_ad.headlines, 
             ad_group_ad.ad.discovery_multi_asset_ad.descriptions, 
 
 EXPANDED_DYNAMIC_SEARCH_AD ->
 
-            ad_group_ad.ad.expanded_dynamic_search_ad.description, 
-            ad_group_ad.ad.expanded_dynamic_search_ad.description2, 
++            ad_group_ad.ad.expanded_dynamic_search_ad.description, 
++            ad_group_ad.ad.expanded_dynamic_search_ad.description2, 
 
 EXPANDED_TEXT_AD
 
@@ -308,7 +292,7 @@ LEGACY_RESPONSIVE_DISPLAY_AD
             ad_group_ad.ad.legacy_responsive_display_ad.long_headline, 
             ad_group_ad.ad.legacy_responsive_display_ad.description, 
 
-LOCAL_AD
+LOCAL_AD ->
 
             ad_group_ad.ad.local_ad.headlines, 
             ad_group_ad.ad.local_ad.descriptions, 
@@ -317,9 +301,9 @@ LOCAL_AD
 
 RESPONSIVE_DISPLAY_AD ->
 
-            ad_group_ad.ad.responsive_display_ad.headlines, 
-            ad_group_ad.ad.responsive_display_ad.long_headline, 
-            ad_group_ad.ad.responsive_display_ad.descriptions, 
++            ad_group_ad.ad.responsive_display_ad.headlines, 
++            ad_group_ad.ad.responsive_display_ad.long_headline, 
++            ad_group_ad.ad.responsive_display_ad.descriptions, 
 
 RESPONSIVE_SEARCH_AD
 
@@ -328,7 +312,7 @@ RESPONSIVE_SEARCH_AD
 +           ad_group_ad.ad.responsive_search_ad.path1, 
 +           ad_group_ad.ad.responsive_search_ad.path2, 
 
-VIDEO_RESPONSIVE_AD ->
+VIDEO_RESPONSIVE_AD
 
             ad_group_ad.ad.video_responsive_ad.headlines, 
             ad_group_ad.ad.video_responsive_ad.descriptions, 
