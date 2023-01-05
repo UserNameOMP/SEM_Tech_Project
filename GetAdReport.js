@@ -45,8 +45,10 @@ const CONFIG = {
             AND ad_group.status = 'ENABLED' 
             AND ad_group_ad.status = 'ENABLED'       
         `,
-        "sheetURL": `https://docs.google.com/spreadsheets/d/17bIUO95BcN2yBA2ZoWnSAfRnvKVd73AvIy7_Ho7B_Bs/`,
-        "sheetName": `Debug_Report`
+        "sheetURL": `https://docs.google.com/spreadsheets/d/1Ye-doPPleq-SmYR6FwVL9Jwa_CaXR6dy54-6dSRxqTU/`,
+        "sheetName": `source`,
+        "configSheetName": `setup`, 
+        "languageSetup": `A2`
   }
   
 function transformAds (list, type) {
@@ -83,7 +85,7 @@ function transformAds (list, type) {
     return obj;
   }
   
-function transformReport(report){
+function transformReport(report, adsLanguage){
     
     const result = [];
   
@@ -208,7 +210,8 @@ function transformReport(report){
           ...headlineRow,
           ...descriptionRow,
           ...pathRow,
-          ...longHeadline
+          ...longHeadline,
+          "Target language": adsLanguage
           
         }
       );
@@ -232,7 +235,7 @@ function transformReport(report){
       }
     
     // Set an empty range in Google Spreadsheet for uploading data from Array
-    var range = sheet.getRange((sheet.getLastRow() + 1), 1,  (reportArray.length), (reportArray[0].length));
+    let range = sheet.getRange(2, 1,  (reportArray.length), (reportArray[0].length));
     range.setValues(reportArray); 
     
   }
@@ -246,10 +249,16 @@ function transformReport(report){
   function main() {
     const spreadsheet = SpreadsheetApp.openByUrl(CONFIG.sheetURL);
     let sheet = spreadsheet.getSheetByName(CONFIG.sheetName);
-    sheet.clearContents();
+    let range = sheet.getRange(2, 1,  sheet.getMaxRows() - 1, 31);
+    range.clearContent();
+
+    let setUpSheet = spreadsheet.getSheetByName(CONFIG.configSheetName);
+    let setUpRange = setUpSheet.getRange(CONFIG.languageSetup);
+    const adsLanguage = setUpRange.getValues();
+
     
     const report = AdsApp.report(CONFIG.query);
-    let result = transformReport(report);
+    let result = transformReport(report, adsLanguage);
 //    prettyPrint(result);
     
   //  report.exportToSheet(sheet);
