@@ -50,7 +50,43 @@ const CONFIG = {
         "configSheetName": `setup`, 
         "languageSetup": `A2`
   }
+
+function getLangSettings() {
   
+    const campaigns = AdsApp.campaigns()
+        .withCondition("campaign.status = 'ENABLED'")
+        .get();
+    
+    let langDictionary = {};
+
+    while (campaigns.hasNext()){
+        const campaign = campaigns.next();
+        const campaign_name = campaign.getName();
+        const campaign_ID = campaign.getId();
+        const languages = campaign.targeting().languages().get();
+        
+        let languageList = [];
+
+        if (languages.hasNext()) {
+            while (languages.hasNext()) {
+                const language = languages.next();
+                const language_name = language.getName();
+                const language_id = language.getId();
+                languageList.push(language_name);
+            }
+        } else {
+            languageList = ["All"];
+        };
+
+        langDictionary[campaign_ID] = languageList;
+
+
+    }
+    
+    return langDictionary;
+}
+  
+
 function transformAds (list, type) {
     
     let obj = {};
@@ -88,6 +124,8 @@ function transformAds (list, type) {
 function transformReport(report, adsLanguage){
     
     const result = [];
+
+    const langDictionary = getLangSettings();
   
     const rows = report.rows();
     while (rows.hasNext()) {
@@ -211,7 +249,8 @@ function transformReport(report, adsLanguage){
           ...descriptionRow,
           ...pathRow,
           ...longHeadline,
-          "Target language": adsLanguage
+          "Target language": langDictionary[row["campaign.id"]],
+          "Language Required": adsLanguage
           
         }
       );
@@ -246,25 +285,23 @@ function transformReport(report, adsLanguage){
   }
   
   
-  function main() {
+function main() {
     const spreadsheet = SpreadsheetApp.openByUrl(CONFIG.sheetURL);
     let sheet = spreadsheet.getSheetByName(CONFIG.sheetName);
-    let range = sheet.getRange(2, 1,  sheet.getMaxRows() - 1, 31);
+    let range = sheet.getRange(2, 1,  sheet.getMaxRows() - 1, 32);
     range.clearContent();
 
     let setUpSheet = spreadsheet.getSheetByName(CONFIG.configSheetName);
     let setUpRange = setUpSheet.getRange(CONFIG.languageSetup);
     const adsLanguage = setUpRange.getValues();
 
-    
     const report = AdsApp.report(CONFIG.query);
     let result = transformReport(report, adsLanguage);
-//    prettyPrint(result);
-    
-  //  report.exportToSheet(sheet);
+    prettyPrint(result);
     
     exportReport(sheet, spreadsheet, result);
-  }
+
+}
 
 /*
 +           customer.id, 
