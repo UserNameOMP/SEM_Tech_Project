@@ -90,7 +90,7 @@ function getLangSettings() {
 function transformAds (list, type) {
     
     let obj = {};
-//    console.log(type);
+    console.log(type);
     let quantity;
 
     if (type === "Headline") {
@@ -139,7 +139,6 @@ function transformReport(report, adsLanguage){
         let pathRow = {};
         let longHeadline = {};
 
-//        console.log(row["ad_group_ad.ad.type"]);
         if (row["ad_group_ad.ad.type"] === "RESPONSIVE_SEARCH_AD") {
             headlineRow = transformAds(row["ad_group_ad.ad.responsive_search_ad.headlines"], "Headline");
             descriptionRow = transformAds(row["ad_group_ad.ad.responsive_search_ad.descriptions"], "Description");    
