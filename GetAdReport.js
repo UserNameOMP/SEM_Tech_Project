@@ -45,13 +45,52 @@ const CONFIG = {
             AND ad_group.status = 'ENABLED' 
             AND ad_group_ad.status = 'ENABLED'       
         `,
-        "sheetURL": `https://docs.google.com/spreadsheets/d/17bIUO95BcN2yBA2ZoWnSAfRnvKVd73AvIy7_Ho7B_Bs/`,
-        "sheetName": `Debug_Report`
+        "sheetURL": `https://docs.google.com/spreadsheets/d/1Ye-doPPleq-SmYR6FwVL9Jwa_CaXR6dy54-6dSRxqTU/`,
+        "sheetName": `source`,
+        "configSheetName": `setup`, 
+        "languageSetup": `A2`
   }
+
+function getLangSettings() {
   
+    const campaigns = AdsApp.campaigns()
+        .withCondition("campaign.status = 'ENABLED'")
+        .get();
+    
+    let langDictionary = {};
+
+    while (campaigns.hasNext()){
+        const campaign = campaigns.next();
+        const campaign_name = campaign.getName();
+        const campaign_ID = campaign.getId();
+        const languages = campaign.targeting().languages().get();
+        
+        let languageList = [];
+
+        if (languages.hasNext()) {
+            while (languages.hasNext()) {
+                const language = languages.next();
+                const language_name = language.getName();
+                const language_id = language.getId();
+                languageList.push(language_name);
+            }
+        } else {
+            languageList = ["All"];
+        };
+
+        langDictionary[campaign_ID] = languageList;
+
+
+    }
+    
+    return langDictionary;
+}
+  
+
 function transformAds (list, type) {
     
     let obj = {};
+//    console.log(type);
     let quantity;
 
     if (type === "Headline") {
@@ -65,7 +104,7 @@ function transformAds (list, type) {
     for (let row = 0; row < quantity; row++){
       
       let rowCounter = type + " " + (parseInt(row) + 1);
-     
+
       if (!!list[row]) {
         if (!!list[row]["text"]) {
             obj[rowCounter] = list[row]["text"]
@@ -82,9 +121,11 @@ function transformAds (list, type) {
     return obj;
   }
   
-function transformReport(report){
+function transformReport(report, adsLanguage){
     
     const result = [];
+
+    const langDictionary = getLangSettings();
   
     const rows = report.rows();
     while (rows.hasNext()) {
@@ -98,6 +139,7 @@ function transformReport(report){
         let pathRow = {};
         let longHeadline = {};
 
+//        console.log(row["ad_group_ad.ad.type"]);
         if (row["ad_group_ad.ad.type"] === "RESPONSIVE_SEARCH_AD") {
             headlineRow = transformAds(row["ad_group_ad.ad.responsive_search_ad.headlines"], "Headline");
             descriptionRow = transformAds(row["ad_group_ad.ad.responsive_search_ad.descriptions"], "Description");    
@@ -109,7 +151,6 @@ function transformReport(report){
                 "Long Headline": ""
             };
         } else if (row["ad_group_ad.ad.type"] === "EXPANDED_TEXT_AD"){
-
             headlineRow = transformAds([
                 row["ad_group_ad.ad.expanded_text_ad.headline_part1"], 
                 row["ad_group_ad.ad.expanded_text_ad.headline_part2"], 
@@ -127,7 +168,6 @@ function transformReport(report){
                 "Long Headline": ""
             };
         } else if (row["ad_group_ad.ad.type"] === "TEXT_AD") {
-
             headlineRow = transformAds([
                 row["ad_group_ad.ad.text_ad.headline"]
             ], "Headline");
@@ -142,9 +182,59 @@ function transformReport(report){
             longHeadline = {
                 "Long Headline": ""
             };
+        } else if (row["ad_group_ad.ad.type"] === "EXPANDED_DYNAMIC_SEARCH_AD") {
+            headlineRow = transformAds([
+                ""
+            ], "Headline");
+            descriptionRow = transformAds([
+                row["ad_group_ad.ad.expanded_dynamic_search_ad.description"],
+                row["ad_group_ad.ad.expanded_dynamic_search_ad.description2"]
+            ], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": ""
+            };
+        } else if (row["ad_group_ad.ad.type"] === "RESPONSIVE_DISPLAY_AD") {
+            headlineRow = transformAds(row["ad_group_ad.ad.responsive_display_ad.headlines"], "Headline");
+            descriptionRow = transformAds(row["ad_group_ad.ad.responsive_display_ad.descriptions"], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": row["ad_group_ad.ad.responsive_display_ad.long_headline"]
+            };
+
+        } else if (row["ad_group_ad.ad.type"] === "VIDEO_RESPONSIVE_AD") {
+            headlineRow = transformAds(row["ad_group_ad.ad.video_responsive_ad.headlines"], "Headline");
+            descriptionRow = transformAds(row["ad_group_ad.ad.video_responsive_ad.descriptions"], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": row["ad_group_ad.ad.video_responsive_ad.long_headlines"]
+            };
+
         } else {
             console.log("I don't know what it is");
-  }
+            headlineRow = transformAds([
+                ""
+            ], "Headline");
+            descriptionRow = transformAds([
+                ""
+            ], "Description");    
+            pathRow = {
+                "Path 1": "",
+                "Path 2": ""
+            };
+            longHeadline = {
+                "Long Headline": `I don't how to work with ${row["ad_group_ad.ad.type"]}`
+            };
+        }
 
       result.push(
         {
@@ -158,7 +248,9 @@ function transformReport(report){
           ...headlineRow,
           ...descriptionRow,
           ...pathRow,
-          ...longHeadline
+          ...longHeadline,
+          "Target language": langDictionary[row["campaign.id"]],
+          "Language Required": adsLanguage
           
         }
       );
@@ -182,7 +274,7 @@ function transformReport(report){
       }
     
     // Set an empty range in Google Spreadsheet for uploading data from Array
-    var range = sheet.getRange((sheet.getLastRow() + 1), 1,  (reportArray.length), (reportArray[0].length));
+    let range = sheet.getRange(2, 1,  (reportArray.length), (reportArray[0].length));
     range.setValues(reportArray); 
     
   }
@@ -193,16 +285,89 @@ function transformReport(report){
   }
   
   
-  function main() {
+function main() {
     const spreadsheet = SpreadsheetApp.openByUrl(CONFIG.sheetURL);
     let sheet = spreadsheet.getSheetByName(CONFIG.sheetName);
-    sheet.clearContents();
-    
+    let range = sheet.getRange(2, 1,  sheet.getMaxRows() - 1, 32);
+    range.clearContent();
+
+    let setUpSheet = spreadsheet.getSheetByName(CONFIG.configSheetName);
+    let setUpRange = setUpSheet.getRange(CONFIG.languageSetup);
+    const adsLanguage = setUpRange.getValues();
+
     const report = AdsApp.report(CONFIG.query);
-    let result = transformReport(report);
-//    prettyPrint(result);
-    
-//  report.exportToSheet(sheet);
+    let result = transformReport(report, adsLanguage);
+    prettyPrint(result);
     
     exportReport(sheet, spreadsheet, result);
-  }
+
+}
+
+/*
++           customer.id, 
++           campaign.id, 
++           campaign.name, 
++           ad_group.id, 
++           ad_group.name, 
++           ad_group_ad.ad.id, 
++           ad_group_ad.ad.type, 
+
+DISCOVERY_MULTI_ASSET_AD ->
+
+            ad_group_ad.ad.discovery_multi_asset_ad.headlines, 
+            ad_group_ad.ad.discovery_multi_asset_ad.descriptions, 
+
+EXPANDED_DYNAMIC_SEARCH_AD ->
+
++            ad_group_ad.ad.expanded_dynamic_search_ad.description, 
++            ad_group_ad.ad.expanded_dynamic_search_ad.description2, 
+
+EXPANDED_TEXT_AD
+
++            ad_group_ad.ad.expanded_text_ad.headline_part1, 
++            ad_group_ad.ad.expanded_text_ad.headline_part2, 
++            ad_group_ad.ad.expanded_text_ad.headline_part3, 
++            ad_group_ad.ad.expanded_text_ad.description, 
++            ad_group_ad.ad.expanded_text_ad.description2, 
++           ad_group_ad.ad.expanded_text_ad.path1, 
++           ad_group_ad.ad.expanded_text_ad.path2, 
+
+LEGACY_RESPONSIVE_DISPLAY_AD
+
+            ad_group_ad.ad.legacy_responsive_display_ad.short_headline, 
+            ad_group_ad.ad.legacy_responsive_display_ad.long_headline, 
+            ad_group_ad.ad.legacy_responsive_display_ad.description, 
+
+LOCAL_AD ->
+
+            ad_group_ad.ad.local_ad.headlines, 
+            ad_group_ad.ad.local_ad.descriptions, 
+            ad_group_ad.ad.local_ad.path1, 
+            ad_group_ad.ad.local_ad.path2, 
+
+RESPONSIVE_DISPLAY_AD ->
+
++            ad_group_ad.ad.responsive_display_ad.headlines, 
++            ad_group_ad.ad.responsive_display_ad.long_headline, 
++            ad_group_ad.ad.responsive_display_ad.descriptions, 
+
+RESPONSIVE_SEARCH_AD
+
++           ad_group_ad.ad.responsive_search_ad.headlines, 
++           ad_group_ad.ad.responsive_search_ad.descriptions, 
++           ad_group_ad.ad.responsive_search_ad.path1, 
++           ad_group_ad.ad.responsive_search_ad.path2, 
+
+VIDEO_RESPONSIVE_AD
+
+            ad_group_ad.ad.video_responsive_ad.headlines, 
+            ad_group_ad.ad.video_responsive_ad.descriptions, 
+            ad_group_ad.ad.video_responsive_ad.long_headlines,
+
+TEXT_AD
+
++            ad_group_ad.ad.text_ad.headline,
++           ad_group_ad.ad.text_ad.description2,
++           ad_group_ad.ad.text_ad.description1 
+
+ */
