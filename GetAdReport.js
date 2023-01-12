@@ -297,7 +297,8 @@ function main() {
 
     const report = AdsApp.report(CONFIG.query);
     let result = transformReport(report, adsLanguage);
-    prettyPrint(result);
+
+//    prettyPrint(result);
     
     exportReport(sheet, spreadsheet, result);
 
