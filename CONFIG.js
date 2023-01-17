@@ -1,7 +1,7 @@
 const CONFIG = {
         "sheetURL": `https://docs.google.com/spreadsheets/d/1Ye-doPPleq-SmYR6FwVL9Jwa_CaXR6dy54-6dSRxqTU/`,
         "sheetName": `source`,
-        "sheetLangName": `source`,
+        "sheetLangName": `Lang`,
         "configSheetName": `setup`, 
         "languageSetup": `A2`
   }
