@@ -1,63 +1,11 @@
-const CONFIG = {
-    "query" : `
-        SELECT 
-            customer.id, 
-            campaign.id, 
-            campaign.name, 
-            ad_group.id, 
-            ad_group.name, 
-            ad_group_ad.ad.id, 
-            ad_group_ad.ad.type, 
-            ad_group_ad.ad.discovery_multi_asset_ad.headlines, 
-            ad_group_ad.ad.discovery_multi_asset_ad.descriptions, 
-            ad_group_ad.ad.expanded_dynamic_search_ad.description, 
-            ad_group_ad.ad.expanded_dynamic_search_ad.description2, 
-            ad_group_ad.ad.expanded_text_ad.headline_part1, 
-            ad_group_ad.ad.expanded_text_ad.headline_part2, 
-            ad_group_ad.ad.expanded_text_ad.headline_part3, 
-            ad_group_ad.ad.expanded_text_ad.description, 
-            ad_group_ad.ad.expanded_text_ad.description2, 
-            ad_group_ad.ad.expanded_text_ad.path1, 
-            ad_group_ad.ad.expanded_text_ad.path2, 
-            ad_group_ad.ad.legacy_responsive_display_ad.short_headline, 
-            ad_group_ad.ad.legacy_responsive_display_ad.long_headline, 
-            ad_group_ad.ad.legacy_responsive_display_ad.description, 
-            ad_group_ad.ad.local_ad.headlines, 
-            ad_group_ad.ad.local_ad.descriptions, 
-            ad_group_ad.ad.local_ad.path1, 
-            ad_group_ad.ad.local_ad.path2, 
-            ad_group_ad.ad.responsive_display_ad.headlines, 
-            ad_group_ad.ad.responsive_display_ad.long_headline, 
-            ad_group_ad.ad.responsive_display_ad.descriptions, 
-            ad_group_ad.ad.responsive_search_ad.headlines, 
-            ad_group_ad.ad.responsive_search_ad.descriptions, 
-            ad_group_ad.ad.responsive_search_ad.path1, 
-            ad_group_ad.ad.responsive_search_ad.path2, 
-            ad_group_ad.ad.video_responsive_ad.headlines, 
-            ad_group_ad.ad.video_responsive_ad.descriptions, 
-            ad_group_ad.ad.video_responsive_ad.long_headlines,
-            ad_group_ad.ad.text_ad.headline,
-            ad_group_ad.ad.text_ad.description2,
-            ad_group_ad.ad.text_ad.description1 
-        FROM ad_group_ad 
-        WHERE 
-            campaign.status = 'ENABLED' 
-            AND ad_group.status = 'ENABLED' 
-            AND ad_group_ad.status = 'ENABLED'       
-        `,
-        "sheetURL": `https://docs.google.com/spreadsheets/d/1Ye-doPPleq-SmYR6FwVL9Jwa_CaXR6dy54-6dSRxqTU/`,
-        "sheetName": `source`,
-        "configSheetName": `setup`, 
-        "languageSetup": `A2`
-  }
-
 // F - Function creates dictionary (Obj) of current set up languages.
-function getLangSettings() {
+function getLangSettings(adsLanguage) {
     const campaigns = AdsApp.campaigns()
         .withCondition("campaign.status = 'ENABLED'")
         .get();
     
-    let langDictionary = {};
+    const result = []; 
+
     while (campaigns.hasNext()){
         const campaign = campaigns.next();
         const campaign_name = campaign.getName();
@@ -75,11 +23,19 @@ function getLangSettings() {
             languageList = ["All"];
         };
 
-        langDictionary[campaign_ID] = languageList;
+        result.push(
+            {
+              "Campaign ID": campaign_ID,
+              "Campaign": campaign_name,
+              "Target language": languageList,
+              "Language Required": adsLanguage
+              
+            }
+          );
 
     }
     
-    return langDictionary;
+    return result;
 }
   
 // F - This function transform adaptive ads types to unit with regular Ads form
@@ -234,7 +190,6 @@ function transformReport(report, adsLanguage){
           ...descriptionRow,
           ...pathRow,
           ...longHeadline,
-          "Target language": langDictionary[row["campaign.id"]],
           "Language Required": adsLanguage
           
         }
@@ -245,13 +200,8 @@ function transformReport(report, adsLanguage){
 }
   
 // F - Exporting New Report into Google Spreadsheet
-function exportReport(sheet, spreadsheet, reportTable) {
+function exportReport(sheet, reportTable) {
     const report = reportTable;
-  
-    // Creating Headline for a report table, if it's empty
-    if (!sheet.getLastRow()){
-      sheet.appendRow(Object.keys(report[0]));
-    }
     
     // Transforming Report from Object to Array for fast uploading
     let reportArray = [];
@@ -259,12 +209,23 @@ function exportReport(sheet, spreadsheet, reportTable) {
         reportArray.push(Object.values(row));
     }
     
+    let range = sheet.getRange(1, 1, 1, (reportArray[0].length));
+    range.setValues(Object.keys(report[0]));
+
     // Set an empty range in Google Spreadsheet for uploading data from Array
-    let range = sheet.getRange(2, 1,  (reportArray.length), (reportArray[0].length));
+    range = sheet.getRange(2, 1,  (reportArray.length), (reportArray[0].length));
     range.setValues(reportArray); 
     
 }
-  
+
+function getEmtyRange(sheetURL, sheetName, reportData) {
+    const spreadsheet = SpreadsheetApp.openByUrl(sheetURL);
+    let sheet = spreadsheet.getSheetByName(sheetName);
+    let range = sheet.getRange(2, 1,  sheet.getMaxRows() - 1, Object.keys(reportData[0]).length);
+    range.clearContent();
+    return sheet;
+}
+
  /// F - Is needed for debugging some code 
 function prettyPrint(obj){
     console.log(JSON.stringify(obj, null, 4));
@@ -272,78 +233,22 @@ function prettyPrint(obj){
     
 function main() {
     const spreadsheet = SpreadsheetApp.openByUrl(CONFIG.sheetURL);
-    let sheet = spreadsheet.getSheetByName(CONFIG.sheetName);
-    let range = sheet.getRange(2, 1,  sheet.getMaxRows() - 1, 32);
-    range.clearContent();
 
     let setUpSheet = spreadsheet.getSheetByName(CONFIG.configSheetName);
     let setUpRange = setUpSheet.getRange(CONFIG.languageSetup);
     const adsLanguage = setUpRange.getValues();
 
-    const report = AdsApp.report(CONFIG.query);
-    let result = transformReport(report, adsLanguage);
-
-//    prettyPrint(result);
+    const report = AdsApp.report(QUERY.ad_group_ad);
     
-    exportReport(sheet, spreadsheet, result);
+    let result = transformReport(report, adsLanguage);
+    let sheet = getEmtyRange(CONFIG.sheetURL, CONFIG.sheetName, result)
+    exportReport(sheet, result);
+//    prettyPrint(result);
+
+    // шматок коду для мов
+    result = getLangSettings(adsLanguage)
+    sheet = getEmtyRange(CONFIG.sheetURL, CONFIG.sheetLangName, result)
+    exportReport(sheet, result)
+//    prettyPrint(result);
 
 }
-
-/*
-***** Info Part *****
-
-Curent Script Version is working with next types of adds:
-
-EXPANDED_DYNAMIC_SEARCH_AD
-            ad_group_ad.ad.expanded_dynamic_search_ad.description, 
-            ad_group_ad.ad.expanded_dynamic_search_ad.description2, 
-
-EXPANDED_TEXT_AD
-            ad_group_ad.ad.expanded_text_ad.headline_part1, 
-            ad_group_ad.ad.expanded_text_ad.headline_part2, 
-            ad_group_ad.ad.expanded_text_ad.headline_part3, 
-            ad_group_ad.ad.expanded_text_ad.description, 
-            ad_group_ad.ad.expanded_text_ad.description2, 
-            ad_group_ad.ad.expanded_text_ad.path1, 
-            ad_group_ad.ad.expanded_text_ad.path2, 
-
-RESPONSIVE_DISPLAY_AD ->
-             ad_group_ad.ad.responsive_display_ad.headlines, 
-             ad_group_ad.ad.responsive_display_ad.long_headline, 
-             ad_group_ad.ad.responsive_display_ad.descriptions, 
-
-RESPONSIVE_SEARCH_AD
-            ad_group_ad.ad.responsive_search_ad.headlines, 
-            ad_group_ad.ad.responsive_search_ad.descriptions, 
-            ad_group_ad.ad.responsive_search_ad.path1, 
-            ad_group_ad.ad.responsive_search_ad.path2, 
-
-TEXT_AD
-             ad_group_ad.ad.text_ad.headline,
-            ad_group_ad.ad.text_ad.description2,
-            ad_group_ad.ad.text_ad.description1 
-
-***** ----- *****
-
-Upgoing types:
-
-DISCOVERY_MULTI_ASSET_AD
-            ad_group_ad.ad.discovery_multi_asset_ad.headlines, 
-            ad_group_ad.ad.discovery_multi_asset_ad.descriptions, 
-
-LEGACY_RESPONSIVE_DISPLAY_AD
-            ad_group_ad.ad.legacy_responsive_display_ad.short_headline, 
-            ad_group_ad.ad.legacy_responsive_display_ad.long_headline, 
-            ad_group_ad.ad.legacy_responsive_display_ad.description, 
-
-LOCAL_AD
-            ad_group_ad.ad.local_ad.headlines, 
-            ad_group_ad.ad.local_ad.descriptions, 
-            ad_group_ad.ad.local_ad.path1, 
-            ad_group_ad.ad.local_ad.path2, 
-
-VIDEO_RESPONSIVE_AD
-            ad_group_ad.ad.video_responsive_ad.headlines, 
-            ad_group_ad.ad.video_responsive_ad.descriptions, 
-            ad_group_ad.ad.video_responsive_ad.long_headlines,
- */
