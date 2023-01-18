@@ -27,7 +27,7 @@ function getLangSettings(adsLanguage) {
             {
               "Campaign ID": campaign_ID,
               "Campaign": campaign_name,
-              "Target language": languageList,
+              "Target language": languageList.toString(),
               "Language Required": adsLanguage
               
             }
