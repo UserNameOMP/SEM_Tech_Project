@@ -210,7 +210,7 @@ function exportReport(sheet, reportTable) {
     }
     
     let range = sheet.getRange(1, 1, 1, (reportArray[0].length));
-    range.setValues(Object.keys(report[0]));
+    range.setValues([Object.keys(report[0])]);
 
     // Set an empty range in Google Spreadsheet for uploading data from Array
     range = sheet.getRange(2, 1,  (reportArray.length), (reportArray[0].length));
