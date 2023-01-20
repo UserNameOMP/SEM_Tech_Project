@@ -25,16 +25,18 @@ function getLangSettings(adsLanguage) {
 
         result.push(
             {
-              "Campaign ID": campaign_ID,
+              "Campaign_ID": campaign_ID,
               "Campaign": campaign_name,
-              "Target language": languageList.toString(),
-              "Language Required": adsLanguage
+              "Target_language": languageList.toString(),
+              "Language_Required": adsLanguage
               
             }
           );
 
     }
     
+    result.sort( (a,b) => a.Target_language - b.Target_language );
+
     return result;
 }
   
