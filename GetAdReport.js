@@ -23,6 +23,8 @@ function getLangSettings(adsLanguage) {
             languageList = ["All"];
         };
 
+        languageList.sort();
+
         result.push(
             {
               "Campaign_ID": campaign_ID,
